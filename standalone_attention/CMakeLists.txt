@@ -23,8 +23,6 @@ FetchContent_Declare(
 # Find CUDA toolkit components
 find_package(CUDAToolkit COMPONENTS cuBLAS REQUIRED)
 
-# Disable cudnn-frontend samples before making it available
-set(CUDNN_FRONTEND_BUILD_SAMPLES OFF)
 FetchContent_MakeAvailable(cudnn-fe)
 
 # Find cuDNN library
@@ -63,6 +61,8 @@ target_link_libraries(attention_lib PRIVATE
 
 # Include directories
 target_include_directories(attention_lib PRIVATE ${CUDNN_INCLUDE_DIR})
+target_include_directories(attention_lib PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
+target_include_directories(attention_lib PUBLIC /usr/local/cuda/targets/x86_64-linux/include)
 target_include_directories(attention_lib PUBLIC .)
 
 # Compile options
