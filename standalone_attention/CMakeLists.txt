@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.25)
 
+project(standalone_attention LANGUAGES CUDA CXX)
+
 # Set GPU architecture if not specified
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
     set(CMAKE_CUDA_ARCHITECTURES native)
 endif()
 
 include(FetchContent)
-project(standalone_attention CUDA CXX)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
@@ -20,8 +21,8 @@ FetchContent_Declare(
     EXCLUDE_FROM_ALL
 )
 
-# Find CUDA toolkit components
-find_package(CUDAToolkit COMPONENTS cuBLAS REQUIRED)
+# Find CUDA toolkit components (explicitly ask for cudart + cublas)
+find_package(CUDAToolkit REQUIRED COMPONENTS cudart cublas)
 
 FetchContent_MakeAvailable(cudnn-fe)
 
@@ -38,32 +39,37 @@ find_library(CUDNN_LIBRARY cudnn
           ${CUDA_TOOLKIT_ROOT_DIR}
     PATH_SUFFIXES lib64 lib)
 
-if(NOT CUDNN_LIBRARY)
-    message(FATAL_ERROR "cuDNN library not found. Please set CUDNN_LIBRARY_PATH environment variable.")
+if(NOT CUDNN_LIBRARY OR NOT CUDNN_INCLUDE_DIR)
+    message(FATAL_ERROR "cuDNN not found. Please set CUDNN_INCLUDE_PATH and CUDNN_LIBRARY_PATH.")
 endif()
 
 message(STATUS "CUDA Toolkit Version: ${CUDAToolkit_VERSION}")
+message(STATUS "CUDA includes: ${CUDAToolkit_INCLUDE_DIRS}")
 message(STATUS "cuDNN Include: ${CUDNN_INCLUDE_DIR}")
 message(STATUS "cuDNN Library: ${CUDNN_LIBRARY}")
 
-# Create library with both attention implementations
+# Library with attention implementations
 add_library(attention_lib SHARED
     cudnn_att.cpp
     attention_cuda.cu
 )
 
-# Link libraries
-target_link_libraries(attention_lib PRIVATE 
-    cudnn_frontend 
-    ${CUDNN_LIBRARY}
-    CUDA::cudart
+# Public include dirs
+target_include_directories(attention_lib
+    PUBLIC
+        ${CUDAToolkit_INCLUDE_DIRS}
+        ${CUDNN_INCLUDE_DIR}
+        .
 )
 
-# Include directories
-target_include_directories(attention_lib PRIVATE ${CUDNN_INCLUDE_DIR})
-target_include_directories(attention_lib PUBLIC ${CUDAToolkit_INCLUDE_DIRS})
-target_include_directories(attention_lib PUBLIC /usr/local/cuda/targets/x86_64-linux/include)
-target_include_directories(attention_lib PUBLIC .)
+# Link libraries (note: cublas optional but likely needed)
+target_link_libraries(attention_lib
+    PUBLIC
+        cudnn_frontend
+        ${CUDNN_LIBRARY}
+        CUDA::cudart
+        CUDA::cublas
+)
 
 # Compile options
 target_compile_options(attention_lib PUBLIC 
@@ -71,14 +77,13 @@ target_compile_options(attention_lib PUBLIC
     $<$<COMPILE_LANGUAGE:CUDA>:-lineinfo>
 )
 
-# Example test executable (optional)
+# Example test executable
 add_executable(test_attention EXCLUDE_FROM_ALL
     test_main.cpp
 )
 
 target_link_libraries(test_attention PRIVATE attention_lib)
 
-# Installation
 install(TARGETS attention_lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION bin
