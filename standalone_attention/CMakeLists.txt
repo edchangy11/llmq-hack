@@ -23,6 +23,8 @@ FetchContent_Declare(
 # Find CUDA toolkit components
 find_package(CUDAToolkit COMPONENTS cuBLAS REQUIRED)
 
+# Disable cudnn-frontend samples before making it available
+set(CUDNN_FRONTEND_BUILD_SAMPLES OFF)
 FetchContent_MakeAvailable(cudnn-fe)
 
 # Find cuDNN library
