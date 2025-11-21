@@ -27,11 +27,15 @@ FetchContent_MakeAvailable(cudnn-fe)
 
 # Find cuDNN library
 find_path(CUDNN_INCLUDE_DIR cudnn.h
-    HINTS $ENV{CUDNN_INCLUDE_PATH} ${CUDA_TOOLKIT_ROOT_DIR}
+    HINTS $ENV{CUDNN_INCLUDE_PATH}
+          /usr/local/lib/python3.12/dist-packages/nvidia/cudnn/include
+          ${CUDA_TOOLKIT_ROOT_DIR}
     PATH_SUFFIXES include)
 
 find_library(CUDNN_LIBRARY cudnn
-    HINTS $ENV{CUDNN_LIBRARY_PATH} ${CUDA_TOOLKIT_ROOT_DIR}
+    HINTS $ENV{CUDNN_LIBRARY_PATH}
+          /usr/local/lib/python3.12/dist-packages/nvidia/cudnn/lib
+          ${CUDA_TOOLKIT_ROOT_DIR}
     PATH_SUFFIXES lib64 lib)
 
 if(NOT CUDNN_LIBRARY)
